@@ -1,0 +1,50 @@
+name: AirCall Backfill
+
+on:
+  workflow_dispatch:
+    inputs:
+      from_date:
+        description: 'Start date (YYYY-MM-DD)'
+        required: false
+        default: '2025-11-01'
+      to_date:
+        description: 'End date (YYYY-MM-DD)'
+        required: false
+        default: '2026-04-06'
+      mode:
+        description: 'Run mode'
+        required: true
+        default: 'backfill'
+        type: choice
+        options:
+          - backfill
+          - custom
+
+jobs:
+  backfill:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run backfill
+        env:
+          AIRCALL_API_ID: ${{ secrets.AIRCALL_API_ID }}
+          AIRCALL_API_TOKEN: ${{ secrets.AIRCALL_API_TOKEN }}
+          GOOGLE_SERVICE_ACCOUNT: ${{ secrets.GOOGLE_SERVICE_ACCOUNT }}
+          GSHEET_ID: ${{ secrets.GSHEET_ID }}
+          GSHEET_TAB: ${{ secrets.GSHEET_TAB }}
+        run: |
+          if [ "${{ inputs.mode }}" = "backfill" ]; then
+            python aircall_sync.py --backfill
+          else
+            python aircall_sync.py --from-date "${{ inputs.from_date }}" --to-date "${{ inputs.to_date }}"
+          fi
